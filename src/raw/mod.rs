@@ -572,6 +572,30 @@ impl<'a, 'f> IntoStreamer<'a> for &'f Fst {
     }
 }
 
+impl Automaton for Fst {
+    type State = Option<CompiledAddr>;
+
+    fn start(&self) -> Option<CompiledAddr> { Some(self.root_addr) }
+
+    fn is_match(&self, state: &Option<CompiledAddr>) -> bool {
+        match state {
+            &Some(addr) => self.node(addr).is_final(),
+            &None => false,
+        }
+    }
+
+    fn can_match(&self, state: &Option<CompiledAddr>) -> bool {
+        state.is_some()
+    }
+
+    fn accept(&self, state: &Option<CompiledAddr>, byte: u8) -> Option<CompiledAddr> {
+        state.and_then(|addr| {
+            let node = self.node(addr);
+            node.find_input(byte).and_then(|i| Some(node.transition_addr(i)))
+        })
+    }
+}
+
 /// A builder for constructing range queries on streams.
 ///
 /// Once all bounds are set, one should call `into_stream` to get a

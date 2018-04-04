@@ -2,17 +2,24 @@ extern crate fst;
 extern crate fst_levenshtein;
 extern crate fst_regex;
 
+use std::str;
+
 use fst_levenshtein::Levenshtein;
 use fst_regex::Regex;
 
 use fst::{Automaton, IntoStreamer, Streamer};
 use fst::raw::{Builder, Fst, Output};
 use fst::set::{Set, OpBuilder};
+use fst::map::Map;
 
 static WORDS: &'static str = include_str!("../data/words-10000");
 
 fn get_set() -> Set {
     Set::from_iter(WORDS.lines()).unwrap()
+}
+
+fn get_map() -> Map {
+    Map::from_iter(WORDS.lines().enumerate().map(|(i, s)| (s, i as u64))).unwrap()
 }
 
 fn fst_set<I, S>(ss: I) -> Fst
@@ -136,4 +143,25 @@ fn union_large() {
         assert_eq!(stream2.next(), Some(key1));
     }
     assert_eq!(stream2.next(), None);
+}
+
+#[test]
+fn find_set_in_map() {
+    let map = get_map();
+    let set = Set::from_iter(
+        vec!["akhaioi", "asdfnotindict", "chedisthis", "conoceré", "etsplantatioets"].into_iter()
+    ).unwrap();
+    let mut stream = map.search(set.as_fst()).into_stream();
+    let mut results = Vec::<(String, u64)>::new();
+    while let Some(k) = stream.next() {
+        results.push((str::from_utf8(k.0).unwrap().to_owned(), k.1));
+    }
+    // we should get back the position of four of the five words in the overall word list
+    // and exclude the one that isn't in there
+    assert_eq!(vec![
+        ("akhaioi".to_owned(), 831),
+        ("chedisthis".to_owned(), 1774),
+        ("conoceré".to_owned(), 2008),
+        ("etsplantatioets".to_owned(), 3068),
+    ], results);
 }
