@@ -12,5 +12,5 @@ keywords = ["search", "information", "retrieval", "dictionary", "map"]
 license = "Unlicense/MIT"
 
 [dependencies]
-fst = { path = "..", version = "0.3" }
+fst = { git = "https://github.com/apendleton/fst", branch = "consistent_versions" }
 utf8-ranges = "0.1"
